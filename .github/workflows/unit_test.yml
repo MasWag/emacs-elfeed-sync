@@ -1,0 +1,23 @@
+name: Emacs Lisp Unit Tests
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    name: Run Tests on Emacs ${{ matrix.emacs-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        emacs-version: ['23.4', '24.4', '25.3', '26.3', '27.2', '28.2', '29.1']
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Set up Emacs
+        uses: purcell/setup-emacs@master
+        with:
+          version: ${{ matrix.emacs-version }}
+
+      - name: Run Tests
+        run: emacs --batch --no-init-file --load run-tests.el
