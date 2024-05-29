@@ -29,6 +29,8 @@ An example configuration of `emacs-elfeed-sync` with `use-package` is as follows
   :config
   ;; The remote index path for synchronization. Any protocol supported by TRAMP can be used.
   (setq elfeed-sync-remote-index-path "/ssh:user@example.com:.elfeed/index")
+  ;; If rsync is available, it is usually much faster: https://www.gnu.org/software/emacs/manual/html_node/tramp/External-methods.html
+  ;; (setq elfeed-sync-remote-index-path "/rsync:user@example.com:.elfeed/index")
   :bind (:map elfeed-search-mode-map
               ("P" . elfeed-sync-push)
               ("F" . elfeed-sync-pull)))
