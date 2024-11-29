@@ -5,14 +5,15 @@
 (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
 (package-initialize)
 
-;; Refresh package contents and install elfeed if not already installed
-(unless (package-installed-p 'elfeed)
-  (package-refresh-contents)
-  (package-install 'elfeed))
+;; Ensure required packages are installed
+(package-refresh-contents)
+(dolist (pkg '(elfeed async))
+  (unless (package-installed-p pkg)
+    (package-install pkg)))
 
 ;; Add your Elisp files to the load path
-(add-to-list 'load-path "./")
-(add-to-list 'load-path "../")
+(dolist (path '("./" "../"))
+  (add-to-list 'load-path (expand-file-name path)))
 
 ;; Load and run the tests
 (load "tests/elfeed-sync-test")

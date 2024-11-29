@@ -25,6 +25,7 @@
 
 (require 'ert)
 (require 'elfeed-sync)
+(require 'async)
 
 ;; Test if `elfeed-db-directory` exists and is correctly set
 (ert-deftest elfeed-sync-test-elfeed-db-directory-exists ()
@@ -35,7 +36,8 @@
 (ert-deftest elfeed-sync-test-push-pull-local ()
   (let ((elfeed-sync-local-index-path (elfeed-sync--local-index-path))
         (elfeed-sync-remote-index-path (make-temp-file "elfeed-test-index"))
-        (backup-local-index-path (make-temp-file "elfeed-backup-index")))
+        (backup-local-index-path (make-temp-file "elfeed-backup-index"))
+        (dummy-data ";;; Elfeed Database Index (version 4)\n\n;; Dummy index for backwards compatablity:\n(:version \"0.0.3\" :feeds #s(hash-table size 65 test equal rehash-size 1.5 rehash-threshold 0.800000011920929 data ()) :entries #s(hash-table size 65 test equal rehash-size 1.5 rehash-threshold 0.800000011920929 data ()) :index [cl-struct-avl-tree- [nil nil nil 0] elfeed-db-compare])"))
 
     ;; Ensure the local index file exists
     (unless (file-exists-p elfeed-sync-local-index-path)
@@ -47,8 +49,8 @@
     ;; Ensure the remote file is empty
     (write-region "" nil elfeed-sync-remote-index-path)
 
-    ;; Perform the push operation
-    (elfeed-sync-push)
+    ;; Perform the push operation and wait until the async operation completes, ensuring sufficient time
+    (async-wait (elfeed-sync-push))
 
     ;; Check that the content of elfeed-sync-remote-index-path and elfeed-sync-local-index-path are identical
     (should (string= (with-temp-buffer
@@ -59,15 +61,15 @@
                        (buffer-string))))
 
     ;; Make a dummy remote index file
-    (write-region "this is dummy" nil elfeed-sync-remote-index-path)
+    (write-region dummy-data nil elfeed-sync-remote-index-path)
 
-    ;; Perform the pull operation
-    (elfeed-sync-pull)
+    ;; Perform the pull operation and wait until the async operation completes, ensuring sufficient time
+    (async-wait (elfeed-sync-pull))
 
     ;; Assert the content of the pulled file
-    (should (string= "this is dummy" (with-temp-buffer
-                                       (insert-file-contents elfeed-sync-local-index-path)
-                                       (buffer-string))))
+    (should (string= dummy-data (with-temp-buffer
+                                  (insert-file-contents elfeed-sync-local-index-path)
+                                  (buffer-string))))
 
     ;; Recover the original local index
     (copy-file backup-local-index-path elfeed-sync-local-index-path t)))
@@ -76,8 +78,19 @@
 ;; Test error handling with an inaccessible remote server
 (ert-deftest elfeed-sync-test-error-handling ()
   (let ((elfeed-sync-remote-index-path "/ssh:foo@example.invalid:/path/to/index"))
-    (should-error (elfeed-sync-push))
-    (should-error (elfeed-sync-pull))))
+    ;; Perform push operation and wait for any async errors
+    (condition-case err
+        (progn
+          (async-wait (elfeed-sync-push))
+          (should-error (signal (car err) (cdr err))))
+      (error (message "Expected error occurred during Elfeed push: %s" err)))
+
+    ;; Perform pull operation and wait for any async errors
+    (condition-case err
+        (progn
+          (async-wait (elfeed-sync-pull))
+          (should-error (signal (car err) (cdr err))))
+      (error (message "Expected error occurred during Elfeed pull: %s" err)))))
 
 (provide 'elfeed-sync-test)
 ;;; elfeed-sync-test.el ends here

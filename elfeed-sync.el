@@ -30,6 +30,7 @@
 
 (require 'elfeed)
 (require 'tramp)
+(require 'async)
 
 (defcustom elfeed-sync-remote-index-path
   "/ssh:foo@example.com:.elfeed/index"
@@ -40,36 +41,49 @@
   (expand-file-name "index" elfeed-db-directory))
 
 (defun elfeed-sync-push ()
-  "Push the local Elfeed index file to a remote location.
+  "Push the local Elfeed index file to a remote location asynchronously.
 This function saves the current state of the Elfeed database and
 then uses Emacs TRAMP to copy the index file to the specified remote path."
   (interactive)
-  (message "Starting Elfeed index push...")
-  (elfeed-db-save)
   (let ((local-index (elfeed-sync--local-index-path))
         (remote-index elfeed-sync-remote-index-path))
     (condition-case err
         (progn
-          (copy-file local-index remote-index 1)
-          (message "Elfeed index pushed successfully."))
-      (error (message "Error during Elfeed index push: %s" err)
+          (message "Starting Elfeed index push...")
+          (elfeed-db-save)
+          (async-start
+           (lambda ()
+             (copy-file local-index remote-index t)
+             'success)
+           (lambda (result)
+             (if (eq result 'success)
+                 (message "Elfeed index pushed successfully.")
+               (message "Error during Elfeed index push.")))))
+      (error (message "Error during Elfeed index push initialization: %s" err)
              (signal (car err) (cdr err))))))
 
 (defun elfeed-sync-pull ()
-  "Pull the Elfeed index file from a remote location.
+  "Pull the Elfeed index file from a remote location asynchronously.
 This function uses Emacs TRAMP to copy the index file from the specified
 remote path to the local Elfeed database directory, and then
 loads the new database state."
   (interactive)
-  (message "Starting Elfeed index pull...")
   (let ((local-index (elfeed-sync--local-index-path))
         (remote-index elfeed-sync-remote-index-path))
     (condition-case err
         (progn
-          (copy-file remote-index local-index 1)
-          (elfeed-db-load)
-          (message "Elfeed index pulled successfully."))
-      (error (message "Error during Elfeed index pull: %s" err)
+          (message "Starting Elfeed index pull...")
+          (async-start
+           (lambda ()
+             (copy-file remote-index local-index t)
+             'success)
+           (lambda (result)
+             (if (eq result 'success)
+                 (progn
+                   (elfeed-db-load)
+                   (message "Elfeed index pulled successfully."))
+               (message "Error during Elfeed index pull.")))))
+      (error (message "Error during Elfeed index pull initialization: %s" err)
              (signal (car err) (cdr err))))))
 
 (provide 'elfeed-sync)

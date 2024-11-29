@@ -9,7 +9,7 @@ emacs-elfeed-sync
 Prerequisites
 -------------
 
-- GNU Emacs
+- GNU Emacs >= 25.1
 - [elfeed](https://github.com/skeeto/elfeed)
 
 Installation and configuration
@@ -18,7 +18,8 @@ Installation and configuration
 ### Installation
 
 1. Clone or download this repository or the `elfeed-sync.el` file.
-2. Place `elfeed-sync.el` in your Emacs load path.
+2. Install [`async.el`](https://elpa.gnu.org/packages/async.html)
+3. Place `elfeed-sync.el` in your Emacs load path.
 
 ### Configuration with `use-package`
 
