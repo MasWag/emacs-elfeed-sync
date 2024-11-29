@@ -20,4 +20,4 @@ jobs:
           version: ${{ matrix.emacs-version }}
 
       - name: Run Tests
-        run: emacs --batch --no-init-file --load run-tests.el
+        run: emacs --batch --no-init-file --load tests/run-tests.el

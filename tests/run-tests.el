@@ -15,5 +15,5 @@
 (add-to-list 'load-path "../")
 
 ;; Load and run the tests
-(load "elfeed-sync-test")
+(load "tests/elfeed-sync-test")
 (ert-run-tests-batch-and-exit)
